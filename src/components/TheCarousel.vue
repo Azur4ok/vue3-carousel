@@ -1,77 +1,204 @@
 <template>
-    <div class="flex flex-col items-center justify-center h-full">
-        <div v-if="loading" class="text-black text-3xl">Loading...</div>
-        <div class="carousel-window overflow-hidden w-full max-w-screen-lg">
-            <div class="carousel-track flex">
-                <img v-for="(image, index) in imgs" :key="image.id" :src="image.download_url"
-                    class="transition-border transition-duration-500 ease"
-                    :class="`cursor-pointer ${selectedImages.includes(image.download_url) ? 'border-2 border-blue-500' : ''}`"
-                    @click="toggleSelect(image.download_url)" :style="{
-                        transform: `translateX(-${currentIndex * imageWidth}px)`, width: imageWidth +
-                            'px'
-                    }" />
+    <div class="flex flex-col items-center justify-center w-full h-full">
+        <div v-if="loading" class="flex items-center justify-center w-full py-20">
+            <div class="text-blue-500 text-2xl">Loading images...</div>
+        </div>
+        <div v-else class="relative">
+            <div ref="carouselWindow"
+                class="carousel-container relative overflow-hidden w-full max-w-screen-lg mx-auto">
+                <div class="carousel-track flex transition-transform duration-300 ease-in-out" :style="trackStyle"
+                    @transitionend="handleTransitionEnd">
+                    <div v-for="(image, index) in displayImages" :key="`${image.id}-${index}`"
+                        class="carousel-item flex-shrink-0" :style="{ width: `${imageWidth}px` }">
+                        <div class="p-2">
+                            <img :src="image.download_url" :alt="`Carousel image ${index}`"
+                                class="w-full h-64 object-cover rounded-lg transition-all duration-300 cursor-pointer"
+                                :class="[
+                                    selectedImages.includes(image.download_url) ?
+                                        'ring-4 ring-blue-500 ring-offset-2' :
+                                        'hover:ring-2 hover:ring-blue-300 hover:ring-offset-1'
+                                ]" @click="toggleSelect(image.download_url)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button @click="prevImage"
+                class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200 group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button @click="nextImage"
+                class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200 group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            <div class="flex justify-center gap-2 mt-4">
+                <button v-for="(_, index) in actualImagesLength" :key="index" @click="goToSlide(index)"
+                    class="w-2 h-2 rounded-full transition-all duration-200" :class="[
+                        currentActualIndex === index ?
+                            'bg-blue-500 w-4' :
+                            'bg-blue-200 hover:bg-blue-300'
+                    ]">
+                </button>
             </div>
         </div>
-        <div class="flex mt-4 gap-4">
-            <button @click="prevImage" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Prev</button>
-            <button @click="nextImage" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ">Next</button>
-        </div>
-        <div class="mt-4 overflow-y-scroll w-[30vw] h-[20vh] overflow-x-hidden">
-            <h3 class="font-bold text-xl">Selected Images:</h3>
-            <transition-group name="list" tag="ul">
-                <div v-for="url in selectedImages" :key="url" class="text-sm">{{ url }}</div>
+        <div class="mt-6 w-full h-[40vh] max-w-3xl bg-gray-50 rounded-lg p-4">
+            <h3 class="font-bold text-lg text-gray-700 mb-2">Selected Images ({{ selectedImages.length }})</h3>
+            <transition-group name="list" tag="ul" class="space-y-2 h-[80%] overflow-y-scroll">
+                <li v-for="url in selectedImages" :key="url"
+                    class="flex items-center justify-between w-[95%] bg-white p-2 rounded shadow-sm">
+                    <span class="text-sm text-gray-600 truncate flex-1">{{ url }}</span>
+                    <button @click="toggleSelect(url)" class="ml-2 text-red-500 hover:text-red-600 p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </li>
             </transition-group>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
-const props = defineProps({
-    images: Array
-});
+interface CarouselImage {
+    id: string;
+    download_url: string;
+}
 
-const imgs = ref([]);
+const props = defineProps<{
+    images: CarouselImage[];
+}>();
+
+const loading = ref(true);
+const carouselWindow = ref<HTMLElement | null>(null);
 const currentIndex = ref(0);
 const selectedImages = ref<string[]>([]);
-const imageWidth = ref(400);
-const imagesOnScreen = ref(3);
-const loading = ref(true);
+const imageWidth = ref(0);
+const imagesPerView = ref(3);
+const isTransitioning = ref(false);
+const totalClones = ref(4);
 
-const updateDimensions = () => {
-    const windowWidth = window.innerWidth;
+const displayImages = computed(() => {
+    const cloneCount = totalClones.value;
+    const images = [...props.images];
+    const result = [];
 
-    if (windowWidth < 640) {
-        imagesOnScreen.value = 1;
-    } else if (windowWidth < 1024) {
-        imagesOnScreen.value = 3;
-    } else {
-        imagesOnScreen.value = 5;
+    for (let i = 0; i < cloneCount; i++) {
+        result.push(...images);
     }
 
-    imageWidth.value = document.querySelector('.carousel-window')!.clientWidth / imagesOnScreen.value;
+    result.push(...images);
+
+    for (let i = 0; i < cloneCount; i++) {
+        result.push(...images);
+    }
+
+    return result;
+});
+
+const actualImagesLength = computed(() => props.images.length);
+
+const currentActualIndex = computed(() => {
+    return Math.floor(currentIndex.value % actualImagesLength.value);
+});
+
+const trackStyle = computed(() => {
+    const baseTransform = currentIndex.value * -imageWidth.value;
+    const offset = totalClones.value * actualImagesLength.value * imageWidth.value;
+
+    return {
+        transform: `translateX(${baseTransform + offset}px)`,
+        transition: isTransitioning.value ? 'transform 300ms ease-in-out' : 'none'
+    };
+});
+
+const updateDimensions = () => {
+    if (!carouselWindow.value) return;
+
+    const containerWidth = carouselWindow.value.clientWidth;
+
+    if (containerWidth < 640) {
+        imagesPerView.value = 1;
+    } else if (containerWidth < 1024) {
+        imagesPerView.value = 2;
+    } else {
+        imagesPerView.value = 3;
+    }
+
+    imageWidth.value = containerWidth / imagesPerView.value;
 };
 
-async function preloadImages() {
-    const imagePromises = props.images.map((image: any) => {
-        return new Promise((resolve) => {
+const preloadImages = async () => {
+    if (!props.images.length) return;
+
+    const imagePromises = props.images.map((image) => {
+        return new Promise((resolve, reject) => {
             const img = new Image();
-            img.src = image.download_url;
             img.onload = resolve;
+            img.onerror = reject;
+            img.src = image.download_url;
         });
     });
 
-    await Promise.all(imagePromises);
-    imgs.value = [...props.images.slice(-imagesOnScreen.value), ...props.images, ...props.images.slice(0, imagesOnScreen.value)];
-    currentIndex.value = imagesOnScreen.value;
-    loading.value = false;
+    try {
+        await Promise.all(imagePromises);
+    } finally {
+        loading.value = false;
+    }
 };
 
+const goToSlide = (index: number) => {
+    isTransitioning.value = true;
+    currentIndex.value = index + totalClones.value * actualImagesLength.value;
+};
+
+const handleTransitionEnd = () => {
+    isTransitioning.value = false;
+
+    const totalImages = actualImagesLength.value;
+    const currentPosition = currentIndex.value % totalImages;
+    const targetIndex = totalClones.value * totalImages + currentPosition;
+
+    if (currentIndex.value !== targetIndex) {
+        currentIndex.value = targetIndex;
+    }
+};
+
+const nextImage = () => {
+    isTransitioning.value = true;
+    currentIndex.value++;
+};
+
+const prevImage = () => {
+    isTransitioning.value = true;
+    currentIndex.value--;
+};
+
+const toggleSelect = (url: string) => {
+    const index = selectedImages.value.indexOf(url);
+    if (index === -1) {
+        selectedImages.value.push(url);
+    } else {
+        selectedImages.value.splice(index, 1);
+    }
+};
 
 onMounted(async () => {
     updateDimensions();
     await preloadImages();
+
+    currentIndex.value = totalClones.value * actualImagesLength.value;
 
     window.addEventListener('resize', updateDimensions);
 });
@@ -80,40 +207,25 @@ onUnmounted(() => {
     window.removeEventListener('resize', updateDimensions);
 });
 
-function prevImage() {
-    currentIndex.value = (currentIndex.value - 1 + imgs.value.length) % imgs.value.length;
-    if (currentIndex.value === imagesOnScreen.value - 1) {
-        currentIndex.value = imgs.value.length - imagesOnScreen.value;
-    }
-}
-
-function nextImage() {
-    currentIndex.value = (currentIndex.value + 1) % imgs.value.length;
-    if (currentIndex.value === imgs.value.length - imagesOnScreen.value) {
-        currentIndex.value = imagesOnScreen.value;
-    }
-}
-
-const toggleSelect = (url: string) => {
-    if (selectedImages.value.includes(url)) {
-        selectedImages.value = selectedImages.value.filter(imgUrl => imgUrl !== url);
-    } else {
-        selectedImages.value.push(url);
-    }
-};
+watch([imagesPerView], updateDimensions);
 </script>
 
 <style scoped>
-.carousel-window {}
+.carousel-track {
+    will-change: transform;
+}
 
 .list-enter-active,
 .list-leave-active {
-    transition: all 0.5s ease;
+    transition: all 0.3s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
     opacity: 0;
-    transform: translateX(10px);
+}
+
+.list-move {
+    transition: transform 0.3s ease;
 }
 </style>

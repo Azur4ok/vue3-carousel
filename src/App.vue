@@ -6,7 +6,7 @@ const images = ref([])
 
 async function fetchImages() {
   try {
-    const response = await fetch('https://picsum.photos/v2/list?limit=5')
+    const response = await fetch('https://picsum.photos/v2/list?limit=10')
     const data = await response.json()
     return data
   } catch (error: unknown) {
