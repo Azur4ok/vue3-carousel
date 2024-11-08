@@ -1,9 +1,9 @@
 <template>
-    <div class="flex flex-col items-center justify-center w-full h-full">
+    <div class="flex flex-col items-center justify-center h-[99%] w-[99%]">
         <div v-if="loading" class="flex items-center justify-center w-full py-20">
             <div class="text-blue-500 text-2xl">Loading images...</div>
         </div>
-        <div v-else class="relative">
+        <div v-else class="relative w-full">
             <div ref="carouselWindow"
                 class="carousel-container relative overflow-hidden w-full max-w-screen-lg mx-auto">
                 <div class="carousel-track flex transition-transform duration-300 ease-in-out" :style="trackStyle"
@@ -22,7 +22,6 @@
                     </div>
                 </div>
             </div>
-
             <button @click="prevImage"
                 class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200 group">
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -49,11 +48,11 @@
                 </button>
             </div>
         </div>
-        <div class="mt-6 w-full h-[40vh] max-w-3xl bg-gray-50 rounded-lg p-4">
+        <div class="mt-6 w-[30vw] h-[35vh] max-w-2xl bg-gray-50 rounded-lg p-4">
             <h3 class="font-bold text-lg text-gray-700 mb-2">Selected Images ({{ selectedImages.length }})</h3>
-            <transition-group name="list" tag="ul" class="space-y-2 h-[80%] overflow-y-scroll">
+            <transition-group name="list" tag="ul" class="space-y-2 h-[85%] overflow-y-scroll">
                 <li v-for="url in selectedImages" :key="url"
-                    class="flex items-center justify-between w-[95%] bg-white p-2 rounded shadow-sm">
+                    class="flex items-center justify-between bg-white p-2 rounded shadow-sm">
                     <span class="text-sm text-gray-600 truncate flex-1">{{ url }}</span>
                     <button @click="toggleSelect(url)" class="ml-2 text-red-500 hover:text-red-600 p-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -85,9 +84,9 @@ const carouselWindow = ref<HTMLElement | null>(null);
 const currentIndex = ref(0);
 const selectedImages = ref<string[]>([]);
 const imageWidth = ref(0);
-const imagesPerView = ref(3);
+const imagesPerView = ref(5);
 const isTransitioning = ref(false);
-const totalClones = ref(4);
+const totalClones = ref(4); 
 
 const displayImages = computed(() => {
     const cloneCount = totalClones.value;
@@ -131,9 +130,9 @@ const updateDimensions = () => {
     if (containerWidth < 640) {
         imagesPerView.value = 1;
     } else if (containerWidth < 1024) {
-        imagesPerView.value = 2;
-    } else {
         imagesPerView.value = 3;
+    } else {
+        imagesPerView.value = 5;
     }
 
     imageWidth.value = containerWidth / imagesPerView.value;
@@ -228,4 +227,4 @@ watch([imagesPerView], updateDimensions);
 .list-move {
     transition: transform 0.3s ease;
 }
-</style>
+</style>    

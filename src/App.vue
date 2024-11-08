@@ -24,7 +24,7 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <main class="w-[100vw] h-[100vh] bg-[#eff0f0]">
+  <main class="w-[100vw] h-[100vh] bg-[#eff0f0] flex flex-col items-center justify-center">
     <the-carousel v-if="images.length > 0" :images="images" />
   </main>
 </template>
