@@ -1,9 +1,6 @@
 <template>
-    <div class="flex flex-col items-center justify-center h-[99%] w-[99%]">
-        <div v-if="loading" class="flex items-center justify-center w-full py-20">
-            <div class="text-blue-500 text-2xl">Loading images...</div>
-        </div>
-        <div v-else class="relative w-full">
+    <div class="flex flex-col items-center justify-center h-[98%] w-[98%]">
+        <div class="relative w-full">
             <div ref="carouselWindow"
                 class="carousel-container relative overflow-hidden w-full max-w-screen-lg mx-auto">
                 <div class="carousel-track flex transition-transform duration-300 ease-in-out" :style="trackStyle"
@@ -79,14 +76,13 @@ const props = defineProps<{
     images: CarouselImage[];
 }>();
 
-const loading = ref(true);
 const carouselWindow = ref<HTMLElement | null>(null);
 const currentIndex = ref(0);
 const selectedImages = ref<string[]>([]);
 const imageWidth = ref(0);
 const imagesPerView = ref(5);
 const isTransitioning = ref(false);
-const totalClones = ref(4); 
+const totalClones = ref(4);
 
 const displayImages = computed(() => {
     const cloneCount = totalClones.value;
@@ -138,25 +134,6 @@ const updateDimensions = () => {
     imageWidth.value = containerWidth / imagesPerView.value;
 };
 
-const preloadImages = async () => {
-    if (!props.images.length) return;
-
-    const imagePromises = props.images.map((image) => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = image.download_url;
-        });
-    });
-
-    try {
-        await Promise.all(imagePromises);
-    } finally {
-        loading.value = false;
-    }
-};
-
 const goToSlide = (index: number) => {
     isTransitioning.value = true;
     currentIndex.value = index + totalClones.value * actualImagesLength.value;
@@ -195,7 +172,6 @@ const toggleSelect = (url: string) => {
 
 onMounted(async () => {
     updateDimensions();
-    await preloadImages();
 
     currentIndex.value = totalClones.value * actualImagesLength.value;
 
@@ -227,4 +203,4 @@ watch([imagesPerView], updateDimensions);
 .list-move {
     transition: transform 0.3s ease;
 }
-</style>    
+</style>

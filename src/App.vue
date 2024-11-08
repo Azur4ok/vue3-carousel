@@ -17,7 +17,6 @@ async function fetchImages() {
 
 onBeforeMount(async () => {
   const imgs = await fetchImages()
-  console.log(imgs);
   images.value = imgs
 
  })
